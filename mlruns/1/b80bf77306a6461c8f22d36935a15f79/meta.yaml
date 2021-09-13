@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/josephgulay/code/roadbusta/TaxiFareModel/mlruns/1/b80bf77306a6461c8f22d36935a15f79/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+name: ''
+run_id: b80bf77306a6461c8f22d36935a15f79
+run_uuid: b80bf77306a6461c8f22d36935a15f79
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1631507657457
+status: 1
+tags: []
+user_id: unknown
