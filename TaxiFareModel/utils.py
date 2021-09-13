@@ -26,5 +26,25 @@ def haversine_vectorized(df,
     return 6371 * c
 
 
+def minkowski_distance_gps(lat1, lat2, lon1, lon2, p):
+    # convert degrees to radians
+    def deg2rad(coordinate):
+        return coordinate * np.pi / 180
+
+    # convert radians into distance
+    def rad2dist(coordinate):
+        earth_radius = 6371 # km
+        return earth_radius * coordinate
+
+    # correct the longitude distance regarding the latitude (https://jonisalonen.com/2014/computing-distance-between-coordinates-can-be-simple-and-fast/)
+    def lng_dist_corrected(lng_dist, lat):
+        return lng_dist * np.cos(lat)
+
+    lat1, lat2, lon1, lon2 = [deg2rad(coordinate) for coordinate in [lat1, lat2, lon1, lon2]]
+    y1, y2, x1, x2 = [rad2dist(angle) for angle in [lat1, lat2, lon1, lon2]]
+    x1, x2 = [lng_dist_corrected(elt['x'], elt['lat']) for elt in [{'x': x1, 'lat': lat1}, {'x': x2, 'lat': lat2}]]
+    return (x1, x2, y1, y2, p)
+
+
 def compute_rmse(y_pred, y_true):
     return np.sqrt(((y_pred - y_true) ** 2).mean())

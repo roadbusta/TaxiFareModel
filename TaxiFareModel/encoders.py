@@ -1,6 +1,6 @@
 from sklearn.base import BaseEstimator, TransformerMixin
 import pandas as pd
-from TaxiFareModel.utils import haversine_vectorized
+from TaxiFareModel.utils import haversine_vectorized,minkowski_distance_gps
 
 class TimeFeaturesEncoder(BaseEstimator, TransformerMixin):
     """Extract the day of week (dow), the hour, the month and the year from a
@@ -48,3 +48,29 @@ class DistanceTransformer(BaseEstimator, TransformerMixin):
                                               end_lat=self.end_lat,
                                               end_lon=self.end_lon)
         return X_[['distance']]
+
+
+# class DistanceTransformerManhatten(BaseEstimator, TransformerMixin):
+#     """Compute the Manhatten distance between two GPS points."""
+#     def __init__(self,
+#                  start_lat="pickup_latitude",
+#                  start_lon="pickup_longitude",
+#                  end_lat="dropoff_latitude",
+#                  end_lon="dropoff_longitude"):
+#         self.start_lat = start_lat
+#         self.start_lon = start_lon
+#         self.end_lat = end_lat
+#         self.end_lon = end_lon
+
+#     def fit(self, X, y=None):
+#         return self
+
+# #NOT SURE WHAT TO DO WITH P
+#     def transform(self, X, y=None):
+#         assert isinstance(X, pd.DataFrame)
+#         X_ = X.copy()
+#         X_['manhattan_dist'] = minkowski_distance_gps(start_lat=self.start_lat,
+#                                                       start_lon=self.start_lon,
+#                                                       end_lat=self.end_lat,
+#                                                       end_lon=self.end_lon,p)
+#         return X_[['manhatten_dist']]

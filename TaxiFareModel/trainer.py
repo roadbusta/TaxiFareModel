@@ -5,17 +5,26 @@ from TaxiFareModel.encoders import DistanceTransformer
 from TaxiFareModel.encoders import TimeFeaturesEncoder
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LinearRegression
-from TaxiFareModel.utils import compute_rmse
+
+from TaxiFareModel.utils import compute_rmse, minkowski_distance_gps
 from TaxiFareModel.data import get_data, clean_data
 from sklearn.model_selection import train_test_split
 from memoized_property import memoized_property
 import mlflow
 from mlflow.tracking import MlflowClient
+import joblib
+
+#Estimators
+from sklearn.linear_model import LinearRegression
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
+from sklearn.ensemble import AdaBoostRegressor
+
 
 
 class Trainer():
-    def __init__(self, X, y):
+    def __init__(self, X, y, estimator, experiment_name):
         """
             X: pandas DataFrame
             y: pandas Series
@@ -23,8 +32,9 @@ class Trainer():
         self.pipeline = None
         self.X = X
         self.y = y
-        self.experiment_name = "[AUS] [MEL] [roadbusta] TaxiFare v1"
+        self.experiment_name = experiment_name
         self.mflow_uri = "https://mlflow.lewagon.co/"
+        self.estimator = estimator
 
     def set_pipeline(self):
         """defines the pipeline as a class attribute"""
@@ -44,10 +54,10 @@ class Trainer():
 
         self.pipe = Pipeline([
         ('preproc', preproc_pipe),
-        ('linear_model', LinearRegression())
+        ('estimator', self.estimator)
         ])
 
-        self.mlflow_log_param("Model type", "Linear Regression")
+        self.mlflow_log_param("Model type", self.estimator)
         return self.pipe
 
     def run(self):
@@ -87,37 +97,61 @@ class Trainer():
     def mlflow_log_metric(self, key, value):
         self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
+    #Saving the model with joblib
+    def save_model(self):
+        """ Save the trained model into a model.joblib file """
+        joblib.dump(self.pipeline, 'model.joblib')
 
 # 🚨 replace with your country code, city, github_nickname and model name and version
 
 if __name__ == "__main__":
+    #Experiment name
+    experiment_name = "[AUS] [MEL] [roadbusta] TaxiFare v1.3"
+
     # get data
     df = get_data()
 
     # clean data
     df = clean_data(df)
 
+    # Drop number of passengers
+    df = df.drop(columns = 'passenger_count')
+
     # set X and y
     y = df["fare_amount"]
+
+    #Drop the fare amount
     X = df.drop("fare_amount", axis=1)
+
+    # # Note: DO NOT IMPLEMENT MANHATTEN HERE_ IT SHOULD BE USED IN DISTANCE
+    # df['manhattan_dist'] = minkowski_distance_gps(df['pickup_latitude'], df['dropoff_latitude'],
+    #                                           df['pickup_longitude'], df['dropoff_longitude'], 1)
 
     # hold out
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.15)
 
-    #instanciate  pipeline class
-    trainer_inst = Trainer(X_train, y_train)
+    #Create an estimator list
+    estimators = [LinearRegression(), KNeighborsRegressor(), RandomForestRegressor(),
+                  SVR(), AdaBoostRegressor()]
 
-    #build a pipeline
-    pipe = trainer_inst.set_pipeline()
 
-    # train
-    pipeline = trainer_inst.run()
+    for estimator in estimators:
+        #instanciate  pipeline class
+        trainer_inst = Trainer(X_train, y_train, estimator, experiment_name)
 
-    # evaluate
-    rmse = trainer_inst.evaluate(X_val, y_val)
+        #build a pipeline
+        pipe = trainer_inst.set_pipeline()
+
+        # train
+        pipeline = trainer_inst.run()
+
+        # evaluate
+        rmse = trainer_inst.evaluate(X_val, y_val)
+        print(f'rmse for {estimator}: ', rmse)
 
     # print trainer model
     experiment_id = trainer_inst.mlflow_experiment_id
-    print('rmse: ', rmse)
-
     print(f"experiment URL: https://mlflow.lewagon.co/#/experiments/{experiment_id}")
+
+    #dump the model
+    # trainer_inst.save_model()
